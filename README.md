@@ -13,10 +13,10 @@ RESTful 設計原則に基づく **アカウント認証型 API サーバー**�
 ## Run (local)
 
 ```bash
-go mod tidy
-PORT=8080 DB_DSN='file:/data/users.db?cache=shared&_busy_timeout=5000' SEED_TEST_USER=true \
-go run ./cmd/api-server
+make dev
 ```
+
+`make dev` は API サーバーをバックグラウンドで起動し、`cmd/seed` のスクリプトを介してテストユーザを API 経由で投入します。サーバーのみを起動したい場合は `make serve`、既存のサーバーに対してシードだけ行いたい場合は `make seed` を利用してください。
 
 ### Health
 
@@ -29,8 +29,11 @@ curl -s http://localhost:8080/healthz
 
 ```bash
 docker build -t account-api:local .
-docker run --rm -p 8080:8080 -e SEED_TEST_USER=true \
+docker run --rm -p 8080:8080 \
   -v $(pwd)/data:/data account-api:local
+
+# 別ターミナル
+API_BASE_URL=http://localhost:8080 go run ./cmd/seed
 ```
 
 ## Kubernetes
@@ -185,7 +188,7 @@ curl -s -X POST -u TaroYamada:PaSSwd4TY http://localhost:8080/close
 - **Body 制限**: 1MiB (`http.MaxBytesReader`)
 - **Timeout**: Read/Write/Idle を設定
 - **DB**: `file:/data/users.db?cache=shared&_busy_timeout=5000`（デフォルト）
-- **Seed**: `SEED_TEST_USER=true` の場合のみ初期ユーザを作成（**"Test～"** は作成しません）
+- **Seed**: `make seed` または `API_BASE_URL=... go run ./cmd/seed` で API 経由のテストユーザ投入が可能
 - **DELETE**: `/close` は**物理削除**
 - **文字列制約**: 課題文に厳密準拠（長さ/パターン/制御コード）
 

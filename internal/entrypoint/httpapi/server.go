@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -22,9 +21,6 @@ type Server struct {
 func New() *Server {
 	repo := memrepo.New()
 	uc := &usecase.Usecase{Repo: repo}
-	if Env("SEED_TEST_USER", "true") == "true" {
-		seedIfNeeded(uc)
-	}
 	s := &Server{UC: uc, mux: http.NewServeMux()}
 	s.routes()
 	return s
@@ -232,30 +228,4 @@ func (s *Server) handleClose(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, messageOnly{Message: "Account and user successfully removed"})
-}
-
-// ---- 起動ユーティリティ ----
-
-func Env(key, def string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return def
-}
-
-func seedIfNeeded(uc *usecase.Usecase) {
-	if _, err := uc.GetUser("TaroYamada", "TaroYamada", "PaSSwd4TY"); err == nil {
-		return
-	}
-	user, err := uc.SignUp("TaroYamada", "PaSSwd4TY")
-	if err != nil {
-		return
-	}
-	nn := strPtr("たろー")
-	cm := strPtr("僕は元気です")
-	_, _ = uc.UpdateUser(user.UserID, user.UserID, "PaSSwd4TY", nn, cm, false)
-}
-
-func strPtr(s string) *string {
-	return &s
 }
