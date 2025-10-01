@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"accountapi/internal/entrypoint/httpapi"
+	"accountapi/internal/entrypoint/rest"
 )
 
 func main() {
@@ -13,7 +13,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
 	}
-	handler := httpapi.New()
+	handler := rest.New()
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,

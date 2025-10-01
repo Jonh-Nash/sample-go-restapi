@@ -1,4 +1,4 @@
-package httpapi
+package rest
 
 // 共通レスポンス
 type messageOnly struct {
