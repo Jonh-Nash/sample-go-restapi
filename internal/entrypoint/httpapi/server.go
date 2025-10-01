@@ -31,19 +31,10 @@ func New() *Server {
 }
 
 func (s *Server) routes() {
-	s.mux.HandleFunc("/healthz", s.withCORS(s.healthz))
-	s.mux.HandleFunc("/signup", s.withCORS(s.handleSignup))
-	s.mux.HandleFunc("/users/", s.withCORS(s.handleUsers)) // /users/{user_id}
-	s.mux.HandleFunc("/close", s.withCORS(s.handleClose))
-
-	// OPTIONS 簡易 CORS
-	s.mux.HandleFunc("/", s.withCORS(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-		http.NotFound(w, r)
-	}))
+	s.mux.HandleFunc("/healthz", s.healthz)
+	s.mux.HandleFunc("/signup", s.handleSignup)
+	s.mux.HandleFunc("/users/", s.handleUsers) // /users/{user_id}
+	s.mux.HandleFunc("/close", s.handleClose)
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -53,20 +44,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		log.Printf("%s %s %dms UA=%q", r.Method, r.URL.Path, time.Since(start).Milliseconds(), r.UserAgent())
 	}()
 	s.mux.ServeHTTP(w, r)
-}
-
-func (s *Server) withCORS(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// CORS
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PATCH,OPTIONS")
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-		next(w, r)
-	}
 }
 
 func (s *Server) healthz(w http.ResponseWriter, r *http.Request) {
