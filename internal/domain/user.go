@@ -24,18 +24,18 @@ var (
 func NewUserForSignup(userID, rawPassword string) (*User, error) {
 	// 必須チェック
 	if userID == "" || rawPassword == "" {
-		return nil, &ErrValidation{Cause: "Required user_id and password"}
+		return nil, &ErrValidation{Reason: ValidationReasonCredentialRequired}
 	}
 	// 長さチェック
 	if l := len(userID); l < 6 || l > 20 {
-		return nil, &ErrValidation{Cause: "Input length is incorrect"}
+		return nil, &ErrValidation{Reason: ValidationReasonInputLength}
 	}
 	if l := len(rawPassword); l < 8 || l > 20 {
-		return nil, &ErrValidation{Cause: "Input length is incorrect"}
+		return nil, &ErrValidation{Reason: ValidationReasonInputLength}
 	}
 	// パターンチェック
 	if !reUserID.MatchString(userID) || !rePassOK.MatchString(rawPassword) {
-		return nil, &ErrValidation{Cause: "Incorrect character pattern"}
+		return nil, &ErrValidation{Reason: ValidationReasonInvalidPattern}
 	}
 	return &User{UserID: userID}, nil
 }
@@ -58,18 +58,18 @@ func (u *User) VerifyPassword(raw string) bool {
 // comment : 0..100（制御コード禁止）。空文字→クリア（未設定）
 func (u *User) ApplyProfileUpdate(nickname *string, comment *string) error {
 	if nickname == nil && comment == nil {
-		return &ErrValidation{Cause: "Required nickname or comment"}
+		return &ErrValidation{Reason: ValidationReasonProfileRequired}
 	}
 	if nickname != nil {
 		if !withinLen(*nickname, 0, 30) || hasControl(*nickname) {
-			return &ErrValidation{Cause: "String length limit exceeded or containing invalid characters"}
+			return &ErrValidation{Reason: ValidationReasonProfileConstraint}
 		}
 		// 空文字 = 未設定（保存は空文字のまま）
 		u.Nickname = *nickname
 	}
 	if comment != nil {
 		if !withinLen(*comment, 0, 100) || hasControl(*comment) {
-			return &ErrValidation{Cause: "String length limit exceeded or containing invalid characters"}
+			return &ErrValidation{Reason: ValidationReasonProfileConstraint}
 		}
 		// 空文字 = クリア
 		u.Comment = *comment

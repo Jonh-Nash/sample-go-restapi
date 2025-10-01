@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"accountapi/internal/domain"
 	"accountapi/internal/infrastructure/repository/memrepo"
 	"accountapi/internal/usecase"
 )
@@ -72,20 +71,14 @@ func (s *Server) handleSignup(w http.ResponseWriter, r *http.Request) {
 	user, err := s.UC.SignUp(req.UserID, req.Password)
 	if err != nil {
 		switch e := err.(type) {
-		case *domain.ErrValidation:
+		case *usecase.ValidationError:
+			cause := validationCause(e.Reason)
 			writeJSON(w, http.StatusBadRequest, struct {
 				Message string `json:"message"`
 				Cause   string `json:"cause"`
-			}{"Account creation failed", e.Cause})
+			}{"Account creation failed", cause})
 			return
 		default:
-			if errors.Is(err, domain.ErrAlreadyExists) {
-				writeJSON(w, http.StatusBadRequest, struct {
-					Message string `json:"message"`
-					Cause   string `json:"cause"`
-				}{"Account creation failed", "Already same user_id is used"})
-				return
-			}
 			// サーバ内部エラー
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
@@ -127,7 +120,7 @@ func (s *Server) handleUsers(w http.ResponseWriter, r *http.Request) {
 				writeAuthFailed(w)
 				return
 			}
-			if errors.Is(err, domain.ErrNotFound) {
+			if errors.Is(err, usecase.ErrNotFound) {
 				writeJSON(w, http.StatusNotFound, messageOnly{Message: "No user found"})
 				return
 			}
@@ -178,15 +171,16 @@ func (s *Server) handleUsers(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			switch e := err.(type) {
-			case *domain.ErrValidation:
-				// cause は 2 種類のいずれか（UC からそのまま）
+			case *usecase.ValidationError:
+				cause := validationCause(e.Reason)
+				// usecase が返す理由コードを HTTP 応答用メッセージに変換
 				writeJSON(w, http.StatusBadRequest, struct {
 					Message string `json:"message"`
 					Cause   string `json:"cause"`
-				}{"User updation failed", e.Cause})
+				}{"User updation failed", cause})
 				return
 			default:
-				if errors.Is(err, domain.ErrNotFound) {
+				if errors.Is(err, usecase.ErrNotFound) {
 					writeJSON(w, http.StatusNotFound, messageOnly{Message: "No user found"})
 					return
 				}
@@ -228,4 +222,25 @@ func (s *Server) handleClose(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, messageOnly{Message: "Account and user successfully removed"})
+}
+
+func validationCause(reason usecase.ValidationReason) string {
+	switch reason {
+	case usecase.ValidationReasonCredentialRequired:
+		return "Required user_id and password"
+	case usecase.ValidationReasonInputLength:
+		return "Input length is incorrect"
+	case usecase.ValidationReasonInvalidPattern:
+		return "Incorrect character pattern"
+	case usecase.ValidationReasonProfileRequired:
+		return "Required nickname or comment"
+	case usecase.ValidationReasonProfileConstraint:
+		return "String length limit exceeded or containing invalid characters"
+	case usecase.ValidationReasonUserAlreadyExists:
+		return "Already same user_id is used"
+	case usecase.ValidationReasonNotUpdatableIDOrPass:
+		return "Not updatable user_id and password"
+	default:
+		return "Validation failed"
+	}
 }

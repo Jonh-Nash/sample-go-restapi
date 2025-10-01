@@ -10,16 +10,35 @@ type Usecase struct {
 	Repo domain.UserRepository
 }
 
+type ValidationReason string
+
+const (
+	ValidationReasonCredentialRequired   ValidationReason = ValidationReason(domain.ValidationReasonCredentialRequired)
+	ValidationReasonInputLength          ValidationReason = ValidationReason(domain.ValidationReasonInputLength)
+	ValidationReasonInvalidPattern       ValidationReason = ValidationReason(domain.ValidationReasonInvalidPattern)
+	ValidationReasonProfileRequired      ValidationReason = ValidationReason(domain.ValidationReasonProfileRequired)
+	ValidationReasonProfileConstraint    ValidationReason = ValidationReason(domain.ValidationReasonProfileConstraint)
+	ValidationReasonUserAlreadyExists    ValidationReason = "user_already_exists"
+	ValidationReasonNotUpdatableIDOrPass ValidationReason = "not_updatable_id_or_password"
+)
+
+type ValidationError struct {
+	Reason ValidationReason
+}
+
+func (e *ValidationError) Error() string { return string(e.Reason) }
+
 var (
 	ErrAuthFailed = errors.New("auth failed") // 401
 	ErrNoPerm     = errors.New("no perm")     // 403
+	ErrNotFound   = errors.New("not found")   // 404
 )
 
 // SignUp: 既存チェック、ハッシュ化、作成
 func (u *Usecase) SignUp(userID, rawPassword string) (*domain.User, error) {
 	user, err := domain.NewUserForSignup(userID, rawPassword)
 	if err != nil {
-		return nil, err
+		return nil, mapValidationError(err)
 	}
 	if err := user.HashPassword(rawPassword); err != nil {
 		return nil, err
@@ -32,7 +51,7 @@ func (u *Usecase) SignUp(userID, rawPassword string) (*domain.User, error) {
 	}
 	if err := u.Repo.Create(rec); err != nil {
 		if errors.Is(err, domain.ErrAlreadyExists) {
-			return nil, &domain.ErrValidation{Cause: "Already same user_id is used"}
+			return nil, &ValidationError{Reason: ValidationReasonUserAlreadyExists}
 		}
 		return nil, err
 	}
@@ -63,7 +82,7 @@ func (u *Usecase) GetUser(pathUserID, authUserID, authPassword string) (*domain.
 	targetRec, err := u.Repo.FindByID(pathUserID)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			return nil, domain.ErrNotFound
+			return nil, ErrNotFound
 		}
 		return nil, err
 	}
@@ -78,7 +97,7 @@ func (u *Usecase) UpdateUser(pathUserID, authUserID, authPassword string, nickna
 	rec, err := u.Repo.FindByID(authUserID)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
-			return nil, domain.ErrNotFound
+			return nil, ErrNotFound
 		}
 		return nil, err
 	}
@@ -88,12 +107,15 @@ func (u *Usecase) UpdateUser(pathUserID, authUserID, authPassword string, nickna
 	}
 	// user_id/password がボディに含まれていたら即 400
 	if forbidChangingIDOrPass {
-		return nil, &domain.ErrValidation{Cause: "Not updatable user_id and password"}
+		return nil, &ValidationError{Reason: ValidationReasonNotUpdatableIDOrPass}
 	}
 	if err := d.ApplyProfileUpdate(nickname, comment); err != nil {
-		return nil, err
+		return nil, mapValidationError(err)
 	}
 	if err := u.Repo.UpdateProfile(d.UserID, d.Nickname, d.Comment); err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return nil, ErrNotFound
+		}
 		return nil, err
 	}
 	return d, nil
@@ -111,9 +133,37 @@ func (u *Usecase) CloseUser(authUserID, authPassword string) error {
 		return ErrAuthFailed
 	}
 	if err := u.Repo.Delete(d.UserID); err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return ErrAuthFailed
+		}
 		return err
 	}
 	return nil
+}
+
+func mapValidationError(err error) error {
+	var vErr *domain.ErrValidation
+	if errors.As(err, &vErr) {
+		return &ValidationError{Reason: validationReasonFromDomain(vErr.Reason)}
+	}
+	return err
+}
+
+func validationReasonFromDomain(reason domain.ValidationReason) ValidationReason {
+	switch reason {
+	case domain.ValidationReasonCredentialRequired:
+		return ValidationReasonCredentialRequired
+	case domain.ValidationReasonInputLength:
+		return ValidationReasonInputLength
+	case domain.ValidationReasonInvalidPattern:
+		return ValidationReasonInvalidPattern
+	case domain.ValidationReasonProfileRequired:
+		return ValidationReasonProfileRequired
+	case domain.ValidationReasonProfileConstraint:
+		return ValidationReasonProfileConstraint
+	default:
+		return ValidationReason(reason)
+	}
 }
 
 func toDomain(rec *domain.UserRecord) *domain.User {
