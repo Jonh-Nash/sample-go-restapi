@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"accountapi/internal/domain"
+	"accountapi/internal/infrastructure/repository/memrepo"
 	"accountapi/internal/usecase"
 )
 
@@ -18,7 +19,12 @@ type Server struct {
 	mux *http.ServeMux
 }
 
-func New(uc *usecase.Usecase) *Server {
+func New() *Server {
+	repo := memrepo.New()
+	uc := &usecase.Usecase{Repo: repo}
+	if Env("SEED_TEST_USER", "true") == "true" {
+		seedIfNeeded(uc)
+	}
 	s := &Server{UC: uc, mux: http.NewServeMux()}
 	s.routes()
 	return s
@@ -258,4 +264,21 @@ func Env(key, def string) string {
 		return v
 	}
 	return def
+}
+
+func seedIfNeeded(uc *usecase.Usecase) {
+	if _, err := uc.GetUser("TaroYamada", "TaroYamada", "PaSSwd4TY"); err == nil {
+		return
+	}
+	user, err := uc.SignUp("TaroYamada", "PaSSwd4TY")
+	if err != nil {
+		return
+	}
+	nn := strPtr("たろー")
+	cm := strPtr("僕は元気です")
+	_, _ = uc.UpdateUser(user.UserID, user.UserID, "PaSSwd4TY", nn, cm, false)
+}
+
+func strPtr(s string) *string {
+	return &s
 }
