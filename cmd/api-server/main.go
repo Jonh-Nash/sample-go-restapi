@@ -3,25 +3,27 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"accountapi/internal/entrypoint/rest"
 )
 
 func main() {
-	cfg, err := loadConfig()
-	if err != nil {
-		log.Fatalf("failed to load config: %v", err)
+	port := strings.TrimSpace(os.Getenv("PORT"))
+	if port == "" {
+		port = "8080"
 	}
-	handler := rest.New()
 
+	handler := rest.New()
 	srv := &http.Server{
-		Addr:         ":" + cfg.Port,
+		Addr:         ":" + port,
 		Handler:      handler,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
-	log.Printf("listening on :%s", cfg.Port)
+	log.Printf("listening on :%s", port)
 	log.Fatal(srv.ListenAndServe())
 }
