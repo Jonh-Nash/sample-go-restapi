@@ -1,0 +1,1220 @@
+{
+  "info": {
+    "name": "Account API E2E",
+    "description": "End-to-end verification for the account authentication API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Signup",
+      "item": [
+        {
+          "name": "Sign up new primary user succeeds",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/signup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "signup"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const base = Date.now().toString(36).toUpperCase();",
+                  "const suffix = base.slice(-6).padStart(6, '0');",
+                  "const userId = `Auto${suffix}`;",
+                  "const password = `Pw${suffix}!9A`;",
+                  "pm.collectionVariables.set('primaryUserId', userId);",
+                  "pm.collectionVariables.set('primaryPassword', password);",
+                  "const payload = {",
+                  "  user_id: userId,",
+                  "  password: password",
+                  "};",
+                  "pm.request.body.update(JSON.stringify(payload, null, 2));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Signup success payload matches spec', function () {",
+                  "  pm.expect(json.message).to.eql('Account successfully created');",
+                  "  pm.expect(json).to.have.property('user');",
+                  "  pm.expect(json.user.user_id).to.eql(pm.collectionVariables.get('primaryUserId'));",
+                  "  pm.expect(json.user.nickname).to.eql(pm.collectionVariables.get('primaryUserId'));",
+                  "  pm.expect(json.user).to.not.have.property('comment');",
+                  "});",
+                  "const auth = 'Basic ' + Buffer.from(`${pm.collectionVariables.get('primaryUserId')}:${pm.collectionVariables.get('primaryPassword')}`).toString('base64');",
+                  "pm.collectionVariables.set('primaryAuthToken', auth);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sign up duplicate user_id fails",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/signup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "signup"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{primaryUserId}}\",\n  \"password\": \"{{primaryPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Duplicate user error matches spec', function () {",
+                  "  pm.expect(json.message).to.eql('Account creation failed');",
+                  "  pm.expect(json.cause).to.eql('Already same user_id is used');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sign up missing credentials fails",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/signup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "signup"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Missing credentials error matches spec', function () {",
+                  "  pm.expect(json.message).to.eql('Account creation failed');",
+                  "  pm.expect(json.cause).to.eql('Required user_id and password');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sign up invalid length fails",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/signup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "signup"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"Short\",\n  \"password\": \"Pw123456!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Length validation error matches spec', function () {",
+                  "  pm.expect(json.message).to.eql('Account creation failed');",
+                  "  pm.expect(json.cause).to.eql('Input length is incorrect');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sign up invalid pattern fails",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/signup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "signup"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"Bad_Id\",\n  \"password\": \"Pw123456!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Pattern validation error matches spec', function () {",
+                  "  pm.expect(json.message).to.eql('Account creation failed');",
+                  "  pm.expect(json.cause).to.eql('Incorrect character pattern');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sign up second user succeeds",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/signup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "signup"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const base = (Date.now() + 1).toString(36).toUpperCase();",
+                  "const suffix = base.slice(-6).padStart(6, '0');",
+                  "const userId = `Aux${suffix}`;",
+                  "const password = `Pw${suffix}!8B`;",
+                  "pm.collectionVariables.set('secondaryUserId', userId);",
+                  "pm.collectionVariables.set('secondaryPassword', password);",
+                  "const payload = {",
+                  "  user_id: userId,",
+                  "  password: password",
+                  "};",
+                  "pm.request.body.update(JSON.stringify(payload, null, 2));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Second signup returns defaults', function () {",
+                  "  pm.expect(json.message).to.eql('Account successfully created');",
+                  "  pm.expect(json.user.user_id).to.eql(pm.collectionVariables.get('secondaryUserId'));",
+                  "  pm.expect(json.user.nickname).to.eql(pm.collectionVariables.get('secondaryUserId'));",
+                  "});",
+                  "const auth = 'Basic ' + Buffer.from(`${pm.collectionVariables.get('secondaryUserId')}:${pm.collectionVariables.get('secondaryPassword')}`).toString('base64');",
+                  "pm.collectionVariables.set('secondaryAuthToken', auth);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users (GET)",
+      "item": [
+        {
+          "name": "Get seeded user returns full profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{taroAuthToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{taroUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{taroUserId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Seeded profile matches spec', function () {",
+                  "  pm.expect(json.message).to.eql('User details by user_id');",
+                  "  pm.expect(json.user.user_id).to.eql(pm.collectionVariables.get('taroUserId'));",
+                  "  pm.expect(json.user.nickname).to.eql('\u305f\u308d\u30fc');",
+                  "  pm.expect(json.user.comment).to.eql('\u50d5\u306f\u5143\u6c17\u3067\u3059');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get primary user returns defaults",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{primaryAuthToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{primaryUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{primaryUserId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Default profile uses user_id and no comment', function () {",
+                  "  pm.expect(json.user.user_id).to.eql(pm.collectionVariables.get('primaryUserId'));",
+                  "  pm.expect(json.user.nickname).to.eql(pm.collectionVariables.get('primaryUserId'));",
+                  "  pm.expect(json.user).to.not.have.property('comment');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get unknown user returns 404",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{primaryAuthToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{missingUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{missingUserId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 404', function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Not found message matches', function () {",
+                  "  pm.expect(json.message).to.eql('No user found');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get user with wrong password returns 401",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{primaryUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{primaryUserId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const userId = pm.collectionVariables.get('primaryUserId');",
+                  "const badAuth = 'Basic ' + Buffer.from(`${userId}:WrongPass1!`).toString('base64');",
+                  "pm.request.headers.upsert({ key: 'Authorization', value: badAuth });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 401', function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('401 message matches spec', function () {",
+                  "  pm.expect(json.message).to.eql('Authentication failed');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users (PATCH)",
+      "item": [
+        {
+          "name": "Update primary user profile succeeds",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{primaryAuthToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{primaryUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{primaryUserId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const nickname = 'Primary-Updated';",
+                  "const comment = 'Profile refreshed via E2E test';",
+                  "pm.collectionVariables.set('primaryNickname', nickname);",
+                  "pm.collectionVariables.set('primaryComment', comment);",
+                  "const payload = {",
+                  "  nickname: nickname,",
+                  "  comment: comment",
+                  "};",
+                  "pm.request.body.update(JSON.stringify(payload, null, 2));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Update response echoes new profile', function () {",
+                  "  pm.expect(json.message).to.eql('User successfully updated');",
+                  "  pm.expect(json.user.nickname).to.eql(pm.collectionVariables.get('primaryNickname'));",
+                  "  pm.expect(json.user.comment).to.eql(pm.collectionVariables.get('primaryComment'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update requires nickname or comment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{primaryAuthToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{primaryUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{primaryUserId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Missing profile fields error matches', function () {",
+                  "  pm.expect(json.message).to.eql('User updation failed');",
+                  "  pm.expect(json.cause).to.eql('Required nickname or comment');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update enforces profile length",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{primaryAuthToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{primaryUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{primaryUserId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nickname\": \"ABCDEFGHIJKLMNOPQRSTUVWXYZ12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Profile length validation matches', function () {",
+                  "  pm.expect(json.message).to.eql('User updation failed');",
+                  "  pm.expect(json.cause).to.eql('String length limit exceeded or containing invalid characters');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update cannot change user_id or password",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{primaryAuthToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{primaryUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{primaryUserId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"SomeoneElse\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Not updatable fields error matches', function () {",
+                  "  pm.expect(json.message).to.eql('User updation failed');",
+                  "  pm.expect(json.cause).to.eql('Not updatable user_id and password');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update with wrong password returns 401",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{primaryUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{primaryUserId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nickname\": \"ShouldFail\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const userId = pm.collectionVariables.get('primaryUserId');",
+                  "const badAuth = 'Basic ' + Buffer.from(`${userId}:WrongPass1!`).toString('base64');",
+                  "pm.request.headers.upsert({ key: 'Authorization', value: badAuth });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 401', function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('401 message matches spec', function () {",
+                  "  pm.expect(json.message).to.eql('Authentication failed');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update with mismatched user returns 403",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{secondaryAuthToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{primaryUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{primaryUserId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nickname\": \"ShouldNotChange\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 403', function () {",
+                  "  pm.response.to.have.status(403);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('403 message matches spec', function () {",
+                  "  pm.expect(json.message).to.eql('No permission for update');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update unknown user returns 404",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{ghostUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{ghostUserId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nickname\": \"Phantom\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const userId = pm.collectionVariables.get('ghostUserId');",
+                  "const password = pm.collectionVariables.get('ghostPassword');",
+                  "const auth = 'Basic ' + Buffer.from(`${userId}:${password}`).toString('base64');",
+                  "pm.request.headers.upsert({ key: 'Authorization', value: auth });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 404', function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Not found message matches', function () {",
+                  "  pm.expect(json.message).to.eql('No user found');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Close",
+      "item": [
+        {
+          "name": "Close account with wrong password returns 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/close",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "close"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const userId = pm.collectionVariables.get('primaryUserId');",
+                  "const badAuth = 'Basic ' + Buffer.from(`${userId}:WrongPass1!`).toString('base64');",
+                  "pm.request.headers.upsert({ key: 'Authorization', value: badAuth });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 401', function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('401 message matches spec', function () {",
+                  "  pm.expect(json.message).to.eql('Authentication failed');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Close primary account succeeds",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{primaryAuthToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/close",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "close"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Close success message matches spec', function () {",
+                  "  pm.expect(json.message).to.eql('Account and user successfully removed');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Close secondary account succeeds",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{secondaryAuthToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/close",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "close"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Close success message matches spec', function () {",
+                  "  pm.expect(json.message).to.eql('Account and user successfully removed');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Close already removed account returns 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{secondaryAuthToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/close",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "close"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 401', function () {",
+                  "  pm.response.to.have.status(401);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "pm.test('Authentication failed after deletion', function () {",
+                  "  pm.expect(json.message).to.eql('Authentication failed');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string",
+      "description": "Default base URL for the Account API when running locally."
+    },
+    {
+      "key": "primaryUserId",
+      "value": ""
+    },
+    {
+      "key": "primaryPassword",
+      "value": ""
+    },
+    {
+      "key": "primaryAuthToken",
+      "value": ""
+    },
+    {
+      "key": "primaryNickname",
+      "value": ""
+    },
+    {
+      "key": "primaryComment",
+      "value": ""
+    },
+    {
+      "key": "secondaryUserId",
+      "value": ""
+    },
+    {
+      "key": "secondaryPassword",
+      "value": ""
+    },
+    {
+      "key": "secondaryAuthToken",
+      "value": ""
+    },
+    {
+      "key": "ghostUserId",
+      "value": "Ghost404"
+    },
+    {
+      "key": "ghostPassword",
+      "value": "GhostPass!1"
+    },
+    {
+      "key": "missingUserId",
+      "value": "UnknownUser99"
+    },
+    {
+      "key": "taroUserId",
+      "value": "TaroYamada"
+    },
+    {
+      "key": "taroPassword",
+      "value": "PaSSwd4TY"
+    },
+    {
+      "key": "taroAuthToken",
+      "value": "Basic VGFyb1lhbWFkYTpQYVNTd2Q0VFk="
+    }
+  ]
+}
