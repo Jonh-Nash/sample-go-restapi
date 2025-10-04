@@ -71,6 +71,65 @@ docker image を release タグで作成してください。deployment で rele
 ```bash
 brew install kind
 brew install kubectl
+brew install kustomize
+```
+
+自己証明書を作成
+
+```bash
+openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -sha256 -days 365 -nodes \
+  -keyout ./kubernetes/overlays/local/secrets/tls.key -out ./kubernetes/overlays/local/secrets/tls.crt \
+  -subj "/CN=account-api.example.com" \
+  -addext "subjectAltName=DNS:account-api.example.com"
+```
+
+kind クラスタを作成
+
+```bash
+kind create cluster --name kdev --config ./kubernetes/kind/kind-ingress.yaml
+kubectl get nodes # クラスタのノードを確認
+```
+
+クラスタに ingress-nginx をインストール
+
+```bash
+kubectl apply -f https://kind.sigs.k8s.io/examples/ingress/deploy-ingress-nginx.yaml
+```
+
+リリースタグで docker image を作成して、kind クラスタに load
+
+```bash
+docker build -t account-api:release .
+kind load docker-image account-api:release --name kdev
+```
+
+マニフェストを apply
+
+```bash
+kustomize build kubernetes/overlays/local > kubernetes/kind/dist.yaml
+kubectl apply -f kubernetes/kind/dist.yaml
+kubectl -n app get deploy,svc,ingress,secret
+```
+
+疎通確認
+
+```bash
+curl -k --resolve 'account-api.example.com:443:127.0.0.1' \
+  https://account-api.example.com/healthz
+```
+
+クラスタを削除
+
+```bash
+kind delete cluster --name kdev
+```
+
+#### アプリケーションを更新する場合
+
+```bash
+docker build -t account-api:release .
+kind load docker-image account-api:release --name kind
+kubectl rollout restart deployment account-api -n app
 ```
 
 ## テスト
