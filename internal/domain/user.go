@@ -10,8 +10,8 @@ import (
 type User struct {
 	UserID       string
 	PasswordHash string
-	Nickname     string // 空文字は「未設定」を意味する
-	Comment      string // 空文字は「未設定/クリア」を意味する
+	Nickname     string
+	Comment      string
 	Deleted      bool
 }
 
@@ -20,7 +20,6 @@ var (
 	rePassOK = regexp.MustCompile(`^[\x21-\x7E]{8,20}$`) // 空白/制御を除く ASCII
 )
 
-// NewUserForSignup は厳密バリデーションを行い User を生成する（パスワードは未ハッシュ）
 func NewUserForSignup(userID, rawPassword string) (*User, error) {
 	// 必須チェック
 	if userID == "" || rawPassword == "" {
@@ -53,7 +52,6 @@ func (u *User) VerifyPassword(raw string) bool {
 	return bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(raw)) == nil
 }
 
-// ApplyProfileUpdate は nickname/comment の更新（制約/空文字の意味付け）を行う
 // nickname: 0..30（制御コード禁止）。空文字→未設定（表示は user_id）
 // comment : 0..100（制御コード禁止）。空文字→クリア（未設定）
 func (u *User) ApplyProfileUpdate(nickname *string, comment *string) error {

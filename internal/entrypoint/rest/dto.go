@@ -35,10 +35,9 @@ type userDetail struct {
 }
 
 // PATCH 入力
-// user_id/password が含まれていたら禁止のため presence を検出できるようにポインタ
 type updateUserRequest struct {
 	Nickname *string `json:"nickname,omitempty"`
 	Comment  *string `json:"comment,omitempty"`
-	UserID   *string `json:"user_id,omitempty"`  // 禁止
-	Password *string `json:"password,omitempty"` // 禁止
+	UserID   *string `json:"user_id,omitempty"`
+	Password *string `json:"password,omitempty"`
 }

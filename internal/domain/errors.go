@@ -1,7 +1,5 @@
 package domain
 
-// ValidationReason はドメインルール違反を識別するコード。
-// プレゼンテーション層のメッセージとは分離して扱う。
 type ValidationReason string
 
 const (
@@ -12,7 +10,6 @@ const (
 	ValidationReasonProfileConstraint  ValidationReason = "profile_constraint"
 )
 
-// ErrValidation はドメインのバリデーションルール違反を表す。
 type ErrValidation struct {
 	Reason ValidationReason
 }

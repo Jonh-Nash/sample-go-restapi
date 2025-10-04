@@ -46,7 +46,7 @@ func (u *Usecase) SignUp(userID, rawPassword string) (*domain.User, error) {
 	rec := &domain.UserRecord{
 		UserID:       user.UserID,
 		PasswordHash: user.PasswordHash,
-		Nickname:     "", // 未設定
+		Nickname:     "",
 		Comment:      "",
 	}
 	if err := u.Repo.Create(rec); err != nil {

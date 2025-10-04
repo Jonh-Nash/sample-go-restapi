@@ -34,7 +34,6 @@ func (s *Server) routes() {
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
-	// アクセスログ（簡易）
 	defer func() {
 		log.Printf("%s %s %dms UA=%q", r.Method, r.URL.Path, time.Since(start).Milliseconds(), r.UserAgent())
 	}()
@@ -60,7 +59,6 @@ func (s *Server) handleSignup(w http.ResponseWriter, r *http.Request) {
 
 	var req signUpRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		// Body が壊れている場合もフォーマット的には 400 の cause を合わせる
 		writeJSON(w, http.StatusBadRequest, struct {
 			Message string `json:"message"`
 			Cause   string `json:"cause"`
@@ -79,7 +77,6 @@ func (s *Server) handleSignup(w http.ResponseWriter, r *http.Request) {
 			}{"Account creation failed", cause})
 			return
 		default:
-			// サーバ内部エラー
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
