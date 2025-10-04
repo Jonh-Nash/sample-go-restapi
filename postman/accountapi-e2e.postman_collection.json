@@ -919,6 +919,124 @@
           ]
         },
         {
+          "name": "Update nickname blank resets to user_id",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{primaryAuthToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{primaryUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{primaryUserId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nickname\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const userId = pm.collectionVariables.get('primaryUserId');",
+                  "pm.test('Blank nickname falls back to user_id', function () {",
+                  "  pm.expect(json.message).to.eql('User successfully updated');",
+                  "  pm.expect(json.user.nickname).to.eql(userId);",
+                  "  pm.expect(json.user.comment).to.eql(pm.collectionVariables.get('primaryComment'));",
+                  "});",
+                  "pm.collectionVariables.set('primaryNickname', '');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update comment blank clears field",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{primaryAuthToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{primaryUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{primaryUserId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "const userId = pm.collectionVariables.get('primaryUserId');",
+                  "pm.test('Blank comment removes stored comment', function () {",
+                  "  pm.expect(json.message).to.eql('User successfully updated');",
+                  "  pm.expect(json.user.nickname).to.eql(userId);",
+                  "  pm.expect(json.user).to.not.have.property('comment');",
+                  "});",
+                  "pm.collectionVariables.set('primaryComment', '');"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Update requires nickname or comment",
           "request": {
             "method": "PATCH",
