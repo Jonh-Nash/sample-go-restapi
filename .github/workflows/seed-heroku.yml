@@ -28,6 +28,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          : "${API_BASE_URL:?E2E_BASE_URL secret must be set}"
+          : "${API_BASE_URL:?HEROKU_URL secret must be set}"
 
           go run ./cmd/seed
