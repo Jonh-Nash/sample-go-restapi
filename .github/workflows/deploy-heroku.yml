@@ -1,0 +1,37 @@
+name: Deploy Heroku
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      HEROKU_APP_NAME: sample-go-restapi
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Push to Heroku
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: |
+          set -euo pipefail
+
+          : "${HEROKU_API_KEY:?HEROKU_API_KEY secret must be set}"
+          echo "::add-mask::${HEROKU_API_KEY}"
+
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git remote get-url heroku >/dev/null 2>&1; then
+            git remote set-url heroku "https://heroku:${HEROKU_API_KEY}@git.heroku.com/${HEROKU_APP_NAME}.git"
+          else
+            git remote add heroku "https://heroku:${HEROKU_API_KEY}@git.heroku.com/${HEROKU_APP_NAME}.git"
+          fi
+
+          git push heroku HEAD:main
+          git remote remove heroku

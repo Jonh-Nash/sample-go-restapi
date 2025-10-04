@@ -1,0 +1,35 @@
+name: Test E2E
+
+on:
+  workflow_run:
+    workflows:
+      - Seed Heroku
+    types:
+      - completed
+  workflow_dispatch:
+
+jobs:
+  run-postman-e2e:
+    runs-on: ubuntu-latest
+    env:
+      BASE_URL: ${{ secrets.E2E_BASE_URL }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Newman CLI
+        run: npm install --global newman
+
+      - name: Run Postman E2E tests
+        run: |
+          set -euo pipefail
+          : "${BASE_URL:?POSTMAN_BASE_URL secret must be set}"
+
+          newman run postman/accountapi-e2e.postman_collection.json \
+            --reporters cli \
+            --env-var baseUrl="$BASE_URL"

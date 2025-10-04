@@ -1,0 +1,30 @@
+name: Seed Heroku
+
+on:
+  workflow_run:
+    workflows:
+      - Deploy Heroku
+    types:
+      - completed
+  workflow_dispatch:
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.25.1
+
+      - name: Seed Heroku app
+        env:
+          API_BASE_URL: https://sample-go-restapi.herokuapp.com
+          SEED_WAIT_LIMIT: 120s
+        run: |
+          set -euo pipefail
+
+          go run ./cmd/seed
