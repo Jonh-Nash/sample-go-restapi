@@ -11,6 +11,7 @@ on:
 jobs:
   seed:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -22,9 +23,11 @@ jobs:
 
       - name: Seed Heroku app
         env:
-          API_BASE_URL: https://sample-go-restapi.herokuapp.com
+          API_BASE_URL: ${{ secrets.HEROKU_URL }}
           SEED_WAIT_LIMIT: 120s
         run: |
           set -euo pipefail
+
+          : "${API_BASE_URL:?E2E_BASE_URL secret must be set}"
 
           go run ./cmd/seed
